@@ -1,0 +1,436 @@
+
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<title>hlf-time-oracle: Go Coverage Report</title>
+		<style>
+			body {
+				background: black;
+				color: rgb(80, 80, 80);
+			}
+			body, pre, #legend span {
+				font-family: Menlo, monospace;
+				font-weight: bold;
+			}
+			#topbar {
+				background: black;
+				position: fixed;
+				top: 0; left: 0; right: 0;
+				height: 42px;
+				border-bottom: 1px solid rgb(80, 80, 80);
+			}
+			#content {
+				margin-top: 50px;
+			}
+			#nav, #legend {
+				float: left;
+				margin-left: 10px;
+			}
+			#legend {
+				margin-top: 12px;
+			}
+			#nav {
+				margin-top: 10px;
+			}
+			#legend span {
+				margin: 0 5px;
+			}
+			.cov0 { color: rgb(192, 0, 0) }
+.cov1 { color: rgb(128, 128, 128) }
+.cov2 { color: rgb(116, 140, 131) }
+.cov3 { color: rgb(104, 152, 134) }
+.cov4 { color: rgb(92, 164, 137) }
+.cov5 { color: rgb(80, 176, 140) }
+.cov6 { color: rgb(68, 188, 143) }
+.cov7 { color: rgb(56, 200, 146) }
+.cov8 { color: rgb(44, 212, 149) }
+.cov9 { color: rgb(32, 224, 152) }
+.cov10 { color: rgb(20, 236, 155) }
+
+		</style>
+	</head>
+	<body>
+		<div id="topbar">
+			<div id="nav">
+				<select id="files">
+				
+				<option value="file0">github.com/shanker-sec/hlf-time-oracle/HLF_time_oracle.go (84.4%)</option>
+				
+				</select>
+			</div>
+			<div id="legend">
+				<span>not tracked</span>
+			
+				<span class="cov0">not covered</span>
+				<span class="cov8">covered</span>
+			
+			</div>
+		</div>
+		<div id="content">
+		
+		<pre class="file" id="file0" style="display: none">package main
+
+import (
+        "bufio"
+        "fmt"
+        "log"
+        "os"
+        "strconv"
+        "strings"
+        "time"
+
+        "github.com/beevik/ntp"
+        "github.com/beevik/nts"
+        "github.com/hyperledger/fabric-chaincode-go/shim"
+        pb "github.com/hyperledger/fabric-protos-go/peer"
+)
+
+type ntpOptsStruct struct {
+        // List of NTP servers. Possible file record formats: "host|port" or "host".
+        // Where "host" - IPv4 address or IPv6 address or domain name. Examples:
+        // "[2001:6d0:ffd4::1]"
+        // "[2001:6d0:ffd4::1]|123"
+        // "82.142.168.18"
+        // "82.142.168.18|123"
+        // "0.pool.ntp.org"
+        // "0.pool.ntp.org|123".
+        file string
+
+        // Timeout determines how long the client waits for a response from the
+        // server before failing with a timeout error.
+        timeout time.Duration
+
+        // TTL specifies the maximum number of IP hops before the query datagram
+        // is dropped by the network. See also: https://en.wikipedia.org/wiki/Time_to_live#IP_packets .
+        TTL int
+
+        // Version of the NTP protocol to use. Defaults to 4.
+        Version int
+
+        // LocalAddress contains the local IP address to use when creating a
+        // connection to the remote NTP server. This may be useful when the local
+        // system has more than one IP address. This address should not contain
+        // a port number.
+        LocalAddress string
+
+        // Address of the remote NTP server.
+        server string
+
+        // Port indicates the port used to reach the remote NTP server.
+        port int
+}
+
+type ntsOptsStruct struct {
+        // List of NTS servers. Possible file record formats: "host|port" or "host".
+        // Where "host" is domain name. Examples:
+        // "time.cloudflare.com"
+        // "time.cloudflare.com|4460".
+        file string
+
+        // Address of the remote NTS server.
+        server string
+
+        // Port indicates the port used to reach the remote NTS server.
+        ntsPort int
+
+        // SessionOptions contains options for customizing the behavior of an NTS
+        // session.
+        opt *nts.SessionOptions
+}
+
+type TimeOracleChaincode struct {
+}
+
+func (cc *TimeOracleChaincode) Init(stub shim.ChaincodeStubInterface) pb.Response <span class="cov0" title="0">{
+        return shim.Success(nil)
+}</span>
+
+func (cc *TimeOracleChaincode) Invoke(stub shim.ChaincodeStubInterface) pb.Response <span class="cov0" title="0">{
+        function, _ := stub.GetFunctionAndParameters()
+
+        switch function </span>{
+        case "GetTimeNtp":<span class="cov0" title="0">
+                return cc.GetTimeNtp()</span>
+        case "GetTimeNts":<span class="cov0" title="0">
+                return cc.GetTimeNts()</span>
+        default:<span class="cov0" title="0">
+                return shim.Error("Invalid function name.")</span>
+        }
+}
+
+// split takes string in format "server|port" and returns server, port and error.
+func split(str *string) (string, int, error) <span class="cov8" title="1">{
+        var (
+                server = ""
+                port   = 0
+                err    error
+        )
+
+        fields := strings.Split(*str, "|")
+
+        for i, data := range fields </span><span class="cov8" title="1">{
+                switch i </span>{
+                case 0:<span class="cov8" title="1">
+                        server = data</span>
+                case 1:<span class="cov8" title="1">
+                        port, err = strconv.Atoi(data)
+
+                        if err != nil </span><span class="cov8" title="1">{
+                                return server, port, fmt.Errorf("bad port number: %v", err)
+                        }</span>
+                }
+        }
+
+        <span class="cov8" title="1">return server, port, nil</span>
+}
+
+// checkFileSize checks if the file exists and its size. It takes file name. Returns error if:
+// file doesn't exist;
+// size of file == 0;
+// size of file &gt; maxFileSize.
+func checkFileSize(name *string) error <span class="cov8" title="1">{
+        fileInfo, err := os.Stat(*name)
+        if err != nil </span><span class="cov8" title="1">{
+                return fmt.Errorf("in checkFileSize(): %s ", err)
+        }</span>
+
+        <span class="cov8" title="1">var maxFileSize int64 = 102400
+        if (fileInfo.Size() == 0) || (fileInfo.Size() &gt; maxFileSize) </span><span class="cov8" title="1">{
+                return fmt.Errorf("in checkFileSize(), bad size of file %s: (must be &gt; 0 or &lt; %d bytes)", *name, maxFileSize)
+        }</span>
+
+        <span class="cov8" title="1">return nil</span>
+}
+
+// ntpQueryLoop sends a request sequentially to each NTP-server in the list until it receives the first response. It gets:
+// a pointer to a file with the list of servers;
+// a pointer to the data structure to form a query.
+// Returns time (in format time.Time) and bool ('true' in case of a response, otherwise `false`).
+func ntpQueryLoop(readFile *os.File, ntpOpts *ntpOptsStruct) (time.Time, bool) <span class="cov8" title="1">{
+        fileScanner := bufio.NewScanner(readFile)
+        fileScanner.Split(bufio.ScanLines)
+
+        for fileScanner.Scan() </span><span class="cov8" title="1">{
+                var err error
+
+                strPointer := fileScanner.Text()
+                ntpOpts.server, ntpOpts.port, err = split(&amp;strPointer)
+
+                if err != nil </span><span class="cov8" title="1">{
+                        log.Printf("in the GetTimeNtp(): parsing error in file : %v %s ", ntpOpts.file, err)
+
+                        continue</span>
+                }
+
+                <span class="cov8" title="1">options := ntp.QueryOptions{
+                        Timeout:      ntpOpts.timeout * time.Second,
+                        TTL:          ntpOpts.TTL,
+                        Port:         ntpOpts.port,
+                        Version:      ntpOpts.Version,
+                        LocalAddress: ntpOpts.LocalAddress,
+                }
+
+                response, err1 := ntp.QueryWithOptions(ntpOpts.server, options)
+                if err1 != nil || (response == nil) </span><span class="cov8" title="1">{ // not sure if `err1 != nil` always in case `response == nil`
+                        log.Printf("error in the GetTimeNtp(): %s ", err1)
+
+                        continue</span>
+                }
+
+                <span class="cov8" title="1">if err2 := response.Validate(); err2 != nil </span><span class="cov0" title="0">{
+                        log.Printf("error in the GetTimeNtp(): %s ", err2)
+
+                        continue</span>
+                }
+
+                <span class="cov8" title="1">return time.Now().Add(response.ClockOffset).UTC(), true</span>
+        }
+
+        <span class="cov8" title="1">var nilTime time.Time
+
+        return nilTime, false</span>
+}
+
+// ntsQueryLoop sends a request sequentially to each NTS-server in the list until it receives the first response. It gets:
+// a pointer to a file with the list of servers;
+// a pointer to the data structure to form a query.
+// Returns time (in format time.Time) and bool ('true' in case of a response, otherwise `false`).
+func ntsQueryLoop(readFile *os.File, ntsOpts *ntsOptsStruct, ntpOpts *ntpOptsStruct) (time.Time, bool) <span class="cov8" title="1">{
+        fileScanner := bufio.NewScanner(readFile)
+        fileScanner.Split(bufio.ScanLines)
+
+        var err error
+
+        var host string
+
+        for fileScanner.Scan() </span><span class="cov8" title="1">{
+                strPointer := fileScanner.Text()
+                ntsOpts.server, ntsOpts.ntsPort, err = split(&amp;strPointer)
+
+                if err != nil </span><span class="cov8" title="1">{
+                        log.Printf("in the GetTimeNts(): parsing error in file : %v %s ", ntsOpts.file, err)
+
+                        continue</span>
+                }
+
+                <span class="cov8" title="1">switch ntsOpts.ntsPort </span>{
+                case 0:<span class="cov8" title="1">
+                        host = ntsOpts.server</span>
+
+                default:<span class="cov8" title="1">
+                        host = strings.Join([]string{ntsOpts.server, strconv.Itoa(ntsOpts.ntsPort)}, ":")</span>
+                }
+
+                <span class="cov8" title="1">session, err := nts.NewSessionWithOptions(host, ntsOpts.opt)
+
+                if err != nil </span><span class="cov8" title="1">{
+                        log.Printf("error in the GetTimeNts(): %s", err)
+
+                        continue</span>
+                }
+
+                <span class="cov8" title="1">options := ntp.QueryOptions{ // no need to specify a NTP port (using NTP Port from NTS response, see: https://www.rfc-editor.org/rfc/rfc8915#section-4.1.8).
+                        Timeout:      ntpOpts.timeout * time.Second,
+                        TTL:          ntpOpts.TTL,
+                        Version:      ntpOpts.Version,
+                        LocalAddress: ntpOpts.LocalAddress,
+                }
+
+                response, err2 := session.QueryWithOptions(&amp;options)
+                if (err2 != nil) || (response == nil) </span><span class="cov0" title="0">{ // not sure if `err2 != nil` always in case `response == nil`
+                        log.Printf("error in the GetTimeNts(): %s", err2)
+
+                        continue</span>
+                }
+
+                <span class="cov8" title="1">if err3 := response.Validate(); err3 != nil </span><span class="cov0" title="0">{
+                        log.Printf("error in the GetTimeNts(): %s", err3)
+
+                        continue</span>
+                }
+
+                <span class="cov8" title="1">return time.Now().Add(response.ClockOffset).UTC(), true</span>
+        }
+
+        <span class="cov8" title="1">var nilTime time.Time
+
+        return nilTime, false</span>
+}
+
+// GetTimeNts returns the timestamp from one of NTS server in format: yyyy-mm-dd hh:mm:ss.nnnnnnnnn +0000 UTC.
+// For example: "2024-07-09 15:37:13.879908993 +0000 UTC"
+// In case of failure to connect to any of the servers:
+// the following is logged: "Reach end of file";
+// returns an error with the text "Failed to get response from NTS servers, see log file".
+// The log also stores information about the reasons for the unsuccessful receipt of data from the NTS server
+// If a man-in-the-middle attack is attempted, the incident will be logged.
+func (cc *TimeOracleChaincode) GetTimeNts() pb.Response <span class="cov8" title="1">{
+        var ntsOpts = ntsOptsStruct{
+                file:    "nts.txt",
+                server:  "",
+                ntsPort: 4460,
+                opt:     &amp;nts.SessionOptions{},
+        }
+
+        var ntpOpts = ntpOptsStruct{
+                timeout:      5,
+                TTL:          128,
+                Version:      4,
+                LocalAddress: "",
+        }
+
+        if err := checkFileSize(&amp;ntsOpts.file); err != nil </span><span class="cov8" title="1">{
+                log.Println(err)
+
+                return shim.Error("error in servers list, see log")
+        }</span>
+
+        <span class="cov8" title="1">readFile, _ := os.Open(ntsOpts.file) // error has already been checked in the checkFileSize().
+        defer readFile.Close()
+
+        fileScanner := bufio.NewScanner(readFile)
+        fileScanner.Split(bufio.ScanLines)
+
+        if accurateTime, result := ntsQueryLoop(readFile, &amp;ntsOpts, &amp;ntpOpts); result </span><span class="cov8" title="1">{
+                return shim.Success([]byte(fmt.Sprint(accurateTime)))
+        }</span>
+
+        <span class="cov8" title="1">log.Printf("Reach end of file : %s", ntsOpts.file)
+
+        return shim.Error("Failed to get response from NTS servers, see log file")</span>
+}
+
+// GetTimeNtp returns the timestamp from one of NTP server in format: yyyy-mm-dd hh:mm:ss.nnnnnnnnn +0000 UTC.
+// For example: "2024-07-09 15:37:13.879908993 +0000 UTC"
+// In case of failure to connect to any of the servers:
+// the following is logged: "Reach end of file";
+// returns an error with the text "Failed to get response from NTP servers, see log file".
+// The log also stores information about the reasons for the unsuccessful receipt of data from the NTP server.
+func (cc *TimeOracleChaincode) GetTimeNtp() pb.Response <span class="cov8" title="1">{
+        var ntpOpts = ntpOptsStruct{
+                file:         "ntp.txt",
+                timeout:      5,
+                TTL:          128,
+                Version:      4,
+                LocalAddress: "",
+                server:       "",
+                port:         123,
+        }
+
+        if err := checkFileSize(&amp;ntpOpts.file); err != nil </span><span class="cov8" title="1">{
+                log.Println("File error :", err)
+
+                return shim.Error("error in servers list, see log file")
+        }</span>
+
+        <span class="cov8" title="1">readFile, _ := os.Open(ntpOpts.file) // error has already been checked in the checkFileSize().
+        defer readFile.Close()
+
+        if accurateTime, result := ntpQueryLoop(readFile, &amp;ntpOpts); result </span><span class="cov8" title="1">{
+                return shim.Success([]byte(fmt.Sprint(accurateTime)))
+        }</span>
+
+        <span class="cov8" title="1">log.Printf("Reach end of file : %s", ntpOpts.file)
+
+        return shim.Error("Failed to get response from NTP servers, see log file")</span>
+}
+
+func main() <span class="cov0" title="0">{
+        err := shim.Start(new(TimeOracleChaincode))
+        if err != nil </span><span class="cov0" title="0">{
+                fmt.Printf("Error starting TimeOracleChaincode: %s", err)
+        }</span>
+}
+</pre>
+		
+		</div>
+	</body>
+	<script>
+	(function() {
+		var files = document.getElementById('files');
+		var visible;
+		files.addEventListener('change', onChange, false);
+		function select(part) {
+			if (visible)
+				visible.style.display = 'none';
+			visible = document.getElementById(part);
+			if (!visible)
+				return;
+			files.value = part;
+			visible.style.display = 'block';
+			location.hash = part;
+		}
+		function onChange() {
+			select(files.value);
+			window.scrollTo(0, 0);
+		}
+		if (location.hash != "") {
+			select(location.hash.substr(1));
+		}
+		if (!visible) {
+			select("file0");
+		}
+	})();
+	</script>
+</html>

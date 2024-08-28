@@ -18,6 +18,7 @@
 ## List of public servers
 
 [Public NTP servers](https://www.ntppool.org/ru/zone/@)
+
 [Public NTS servers](https://gist.github.com/jauderho/2ad0d441760fc5ed69d8d4e2d6b35f8d)
 
 <a name="2"></a>

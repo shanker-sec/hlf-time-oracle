@@ -5,9 +5,13 @@
 `hlf-time-oracle` for Hyperledger Fabric version 2.4.x in folder hlf_2.4. `hlf-time-oracle` for Hyperledger Fabric version 2.5.x in folder hlf_2.5.
 
 [List of public servers](#1)
+
 [Solving the problem of centralisation](#2)
+
 [The features of the NTS protocol](#3)
+
 [Resistance to the man-in-the-middle attack](#4)
+
 [License](#License)
 
 <a name="1"></a>
